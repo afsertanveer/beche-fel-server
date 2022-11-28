@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 const port = process.env.PORT || 5000;
@@ -29,6 +29,7 @@ async function run() {
     const usersCollection = client.db('becheFel').collection('users');
     const categoriesCollection = client.db('becheFel').collection('categories');
     const productsCollection = client.db("becheFel").collection("products");
+    const bookedCollection = client.db("becheFel").collection("booked");
 
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
@@ -62,7 +63,15 @@ async function run() {
        });
     //show all users
        app.get('/users',async(req,res)=>{
-        const query={};
+        let query={};
+        const role = req.query.role;
+        if(role){
+          query ={role:role};
+        }
+        const email = req.query.email;
+        if(email){
+          query ={email:email};
+        }
         const result = await usersCollection.find(query).toArray();
         res.send(result);
        })
@@ -75,6 +84,24 @@ async function run() {
         res.send({ role: user?.role });
       });
       
+      //verifying user
+      app.put('/users/:email',async(req,res)=>{
+        const email = req.params.email;
+        const filter = { email: email };
+        const option = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            isVerified: "true",
+          },
+        };
+        const result = await usersCollection.updateOne(
+          filter,
+          updatedDoc,
+          option
+        );
+        res.send(result);
+      })
+
       //show categories
       
       app.get('/categories',async(req,res)=>{
@@ -110,7 +137,55 @@ async function run() {
         const result = await productsCollection.find(query).toArray();
         res.send(result);
       })
+      //update products when advertised
+      app.put('/product/:id',async(req,res)=>{
+        const id = req.params.id;
+        const filter ={ _id:ObjectId(id)};
+        const option = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            isAdvertised:'true'
+          },
+        };
+        const result = await productsCollection.updateOne(filter,updatedDoc,option);
+        res.send(result);
+      })
 
+      //bookedPhone
+      app.post('/bookedPhone',async(req,res)=>{
+        const booked = req.body;
+        if(booked.productId){
+          const query = { _id: ObjectId(booked.productId) };
+          const option = {upsert:true};
+            const updatedDoc ={
+              $set:{
+                booked:'true'
+              }
+            }
+            
+              const result = await productsCollection.updateOne(
+                query,
+                updatedDoc,
+                option
+              );
+        }
+        const result = await bookedCollection.insertOne(booked);
+
+        res.send(result);
+      })
+
+      //get all booked
+      app.get('/bookedPhone',async(req,res)=>{
+        let query ={};
+        const email = req.query.email;
+        if(email){
+          query = {email:email};
+        }
+        const result = await bookedCollection.find(query).toArray();
+        res.send(result);
+      })
+
+     
 
   } finally {
   }
