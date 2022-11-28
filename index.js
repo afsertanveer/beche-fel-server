@@ -27,6 +27,8 @@ async function run() {
   try {
 
     const usersCollection = client.db('becheFel').collection('users');
+    const categoriesCollection = client.db('becheFel').collection('categories');
+    const productsCollection = client.db("becheFel").collection("products");
 
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
@@ -59,7 +61,11 @@ async function run() {
          res.send(result);
        });
     //show all users
-
+       app.get('/users',async(req,res)=>{
+        const query={};
+        const result = await usersCollection.find(query).toArray();
+        res.send(result);
+       })
 
     //send user role
       app.get("/users/role/:email", async (req, res) => {
@@ -68,7 +74,43 @@ async function run() {
         const user = await usersCollection.findOne(query);
         res.send({ role: user?.role });
       });
-  
+      
+      //show categories
+      
+      app.get('/categories',async(req,res)=>{
+        const query ={};
+        const result = await categoriesCollection.find(query).toArray();
+        res.send(result);
+      })
+
+      //add a product
+
+      app.post('/products',async(req,res)=>{
+          const product = req.body;
+          const result = await productsCollection.insertOne(product);
+          res.send(result);
+        
+      })
+
+      app.get('/products',async(req,res)=>{
+        let query={};
+        const email = req.query.email;
+        if(email){
+          query={addedBy:email};
+        }
+        const result = await productsCollection.find(query).toArray();
+        res.send(result);
+
+      })
+
+      //get product by category
+      app.get('/products/:name',async(req,res)=>{
+        const name = req.params.name;
+        const query = {brand:name};
+        const result = await productsCollection.find(query).toArray();
+        res.send(result);
+      })
+
 
   } finally {
   }
