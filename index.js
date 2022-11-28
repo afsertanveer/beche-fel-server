@@ -25,9 +25,8 @@ const client = new MongoClient(uri, {
 });
 async function run() {
   try {
-
-    const usersCollection = client.db('becheFel').collection('users');
-    const categoriesCollection = client.db('becheFel').collection('categories');
+    const usersCollection = client.db("becheFel").collection("users");
+    const categoriesCollection = client.db("becheFel").collection("categories");
     const productsCollection = client.db("becheFel").collection("products");
     const bookedCollection = client.db("becheFel").collection("booked");
 
@@ -56,166 +55,171 @@ async function run() {
     });
 
     //add users
-       app.post("/users", async (req, res) => {
-         const user = req.body;
-         const result = await usersCollection.insertOne(user);
-         res.send(result);
-       });
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+    //delete a user
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await usersCollection.deleteOne(filter);
+      res.send(result);
+    });
     //show all users
-       app.get('/users',async(req,res)=>{
-        let query={};
-        const role = req.query.role;
-        if(role){
-          query ={role:role};
-        }
-        const email = req.query.email;
-        if(email){
-          query ={email:email};
-        }
-        const result = await usersCollection.find(query).toArray();
-        res.send(result);
-       })
+    app.get("/users", async (req, res) => {
+      let query = {};
+      const role = req.query.role;
+      if (role) {
+        query = { role: role };
+      }
+      const email = req.query.email;
+      if (email) {
+        query = { email: email };
+      }
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
 
     //send user role
-      app.get("/users/role/:email", async (req, res) => {
-        const email = req.params.email;
-        const query = { email: email };
-        const user = await usersCollection.findOne(query);
-        res.send({ role: user?.role });
-      });
-      
-      //verifying user
-      app.put('/users/:email',async(req,res)=>{
-        const email = req.params.email;
-        const filter = { email: email };
+    app.get("/users/role/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      res.send({ role: user?.role });
+    });
+
+    //verifying user
+    app.put("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const option = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          isVerified: "true",
+        },
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updatedDoc,
+        option
+      );
+      res.send(result);
+    });
+
+    //show categories
+
+    app.get("/categories", async (req, res) => {
+      const query = {};
+      const result = await categoriesCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //add a product
+
+    app.post("/products", async (req, res) => {
+      const product = req.body;
+      const result = await productsCollection.insertOne(product);
+      res.send(result);
+    });
+    //show products
+    app.get("/products", async (req, res) => {
+      let query = {};
+      const email = req.query.email;
+      if (email) {
+        query = { addedBy: email };
+      }
+      const isReported = req.query.isReported;
+      if (isReported) {
+        query = { isReported: isReported };
+      }
+      const result = await productsCollection.find(query).toArray();
+      res.send(result);
+    });
+    //delete a product
+    app.delete("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await productsCollection.deleteOne(filter);
+      res.send(result);
+    });
+    //get product by category
+    app.get("/products/:name", async (req, res) => {
+      const name = req.params.name;
+      const query = { brand: name };
+      const result = await productsCollection.find(query).toArray();
+      res.send(result);
+    });
+    //update products when advertised
+    app.put("/product/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const option = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          isAdvertised: "true",
+        },
+      };
+      const result = await productsCollection.updateOne(
+        filter,
+        updatedDoc,
+        option
+      );
+      res.send(result);
+    });
+
+    //report product
+    app.put("/products/report/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const option = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          isReported: "true",
+        },
+      };
+      const result = await productsCollection.updateOne(
+        filter,
+        updatedDoc,
+        option
+      );
+      res.send(result);
+    });
+
+    //bookedPhone
+    app.post("/bookedPhone", async (req, res) => {
+      const booked = req.body;
+      if (booked.productId) {
+        const query = { _id: ObjectId(booked.productId) };
         const option = { upsert: true };
         const updatedDoc = {
           $set: {
-            isVerified: "true",
+            booked: "true",
           },
         };
-        const result = await usersCollection.updateOne(
-          filter,
-          updatedDoc,
-          option
-        );
-        res.send(result);
-      })
 
-      //show categories
-      
-      app.get('/categories',async(req,res)=>{
-        const query ={};
-        const result = await categoriesCollection.find(query).toArray();
-        res.send(result);
-      })
-
-      //add a product
-
-      app.post('/products',async(req,res)=>{
-          const product = req.body;
-          const result = await productsCollection.insertOne(product);
-          res.send(result);
-        
-      })
-      //show products
-      app.get('/products',async(req,res)=>{
-        let query={};
-        const email = req.query.email;
-        if(email){
-          query={addedBy:email};
-        }
-        const isReported = req.query.isReported;
-        if(isReported){
-          query = { isReported: isReported };
-        }
-        const result = await productsCollection.find(query).toArray();
-        res.send(result);
-
-      })
-      //delete a product
-      app.delete("/products/:id",async(req,res)=>{
-        const id = req.params.id;
-        const filter = { _id: ObjectId(id) };
-        const result = await productsCollection.deleteOne(filter);
-        res.send(result);
-      });
-      //get product by category
-      app.get('/products/:name',async(req,res)=>{
-        const name = req.params.name;
-        const query = {brand:name};
-        const result = await productsCollection.find(query).toArray();
-        res.send(result);
-      })
-      //update products when advertised
-      app.put('/product/:id',async(req,res)=>{
-        const id = req.params.id;
-        const filter ={ _id:ObjectId(id)};
-        const option = { upsert: true };
-        const updatedDoc = {
-          $set: {
-            isAdvertised:'true'
-          },
-        };
-        const result = await productsCollection.updateOne(filter,updatedDoc,option);
-        res.send(result);
-      })
-      
-      //report product
-      app.put("/products/report/:id",async(req,res)=>{
-        const id = req.params.id;
-        const filter = { _id: ObjectId(id) };
-        const option = { upsert: true };
-        const updatedDoc = {
-          $set: {
-            isReported: "true",
-          },
-        };
         const result = await productsCollection.updateOne(
-          filter,
+          query,
           updatedDoc,
           option
         );
-        res.send(result);
-      });
-      
+      }
+      const result = await bookedCollection.insertOne(booked);
 
-      //bookedPhone
-      app.post('/bookedPhone',async(req,res)=>{
-        const booked = req.body;
-        if(booked.productId){
-          const query = { _id: ObjectId(booked.productId) };
-          const option = {upsert:true};
-            const updatedDoc ={
-              $set:{
-                booked:'true'
-              }
-            }
-            
-              const result = await productsCollection.updateOne(
-                query,
-                updatedDoc,
-                option
-              );
-        }
-        const result = await bookedCollection.insertOne(booked);
+      res.send(result);
+    });
 
-        res.send(result);
-      })
-
-      //get all booked
-      app.get('/bookedPhone',async(req,res)=>{
-        let query ={};
-        const email = req.query.email;
-        if(email){
-          query = {email:email};
-        }
-        const result = await bookedCollection.find(query).toArray();
-        res.send(result);
-      })
-
-     
-
+    //get all booked
+    app.get("/bookedPhone", async (req, res) => {
+      let query = {};
+      const email = req.query.email;
+      if (email) {
+        query = { email: email };
+      }
+      const result = await bookedCollection.find(query).toArray();
+      res.send(result);
+    });
   } finally {
   }
 }
