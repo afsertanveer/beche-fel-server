@@ -220,6 +220,14 @@ async function run() {
       const result = await bookedCollection.find(query).toArray();
       res.send(result);
     });
+    //get booked by id
+    app.get("/bookedPhone/:id", async (req, res) => {
+      const id = req.params.id;
+      let query = {_id:ObjectId(id)};
+      const result = await bookedCollection.findOne(query);
+      res.send(result);
+    });
+
   } finally {
   }
 }
