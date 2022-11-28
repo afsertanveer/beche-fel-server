@@ -29,7 +29,7 @@ async function run() {
     const categoriesCollection = client.db("becheFel").collection("categories");
     const productsCollection = client.db("becheFel").collection("products");
     const bookedCollection = client.db("becheFel").collection("booked");
-
+    const paymentsCollection = client.db("becheFel").collection("payments");
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
       const query = { email: email };
@@ -54,6 +54,50 @@ async function run() {
       res.status(403).send({ accessToken: "" });
     });
 
+    app.post("/create-payment-intent", async (req, res) => {
+      const booking = req.body;
+      const price = booking.price;
+      const amount = price * 100;
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        currency: "usd",
+        amount: amount,
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      console.log(payment);
+      const result = await paymentsCollection.insertOne(payment);
+        const prodId = payment.productId;
+        const secFilter = { _id: ObjectId(prodId) };
+        const updatedDocProd = {
+          $set: {
+            isSold: "true",
+          },
+        };
+        const prodBook = await productsCollection.updateOne(
+          secFilter,
+          updatedDocProd
+        );
+      const id = payment.bookingId;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          paid: "true",
+          transactionId: payment.transactionId,
+        },
+      };
+      const updateResult = await bookedCollection.updateOne(
+        filter,
+        updatedDoc
+      );
+    
+      res.send(result);
+    });
     //add users
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -223,7 +267,7 @@ async function run() {
     //get booked by id
     app.get("/bookedPhone/:id", async (req, res) => {
       const id = req.params.id;
-      let query = {_id:ObjectId(id)};
+      let query = {productId:id};
       const result = await bookedCollection.findOne(query);
       res.send(result);
     });
