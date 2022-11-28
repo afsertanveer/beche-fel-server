@@ -118,18 +118,28 @@ async function run() {
           res.send(result);
         
       })
-
+      //show products
       app.get('/products',async(req,res)=>{
         let query={};
         const email = req.query.email;
         if(email){
           query={addedBy:email};
         }
+        const isReported = req.query.isReported;
+        if(isReported){
+          query = { isReported: isReported };
+        }
         const result = await productsCollection.find(query).toArray();
         res.send(result);
 
       })
-
+      //delete a product
+      app.delete("/products/:id",async(req,res)=>{
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
+        const result = await productsCollection.deleteOne(filter);
+        res.send(result);
+      });
       //get product by category
       app.get('/products/:name',async(req,res)=>{
         const name = req.params.name;
@@ -150,6 +160,25 @@ async function run() {
         const result = await productsCollection.updateOne(filter,updatedDoc,option);
         res.send(result);
       })
+      
+      //report product
+      app.put("/products/report/:id",async(req,res)=>{
+        const id = req.params.id;
+        const filter = { _id: ObjectId(id) };
+        const option = { upsert: true };
+        const updatedDoc = {
+          $set: {
+            isReported: "true",
+          },
+        };
+        const result = await productsCollection.updateOne(
+          filter,
+          updatedDoc,
+          option
+        );
+        res.send(result);
+      });
+      
 
       //bookedPhone
       app.post('/bookedPhone',async(req,res)=>{
